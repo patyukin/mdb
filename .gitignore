@@ -1,0 +1,5 @@
+/bin
+config.yaml
+config-local.yaml
+coverage.html
+/coverage
