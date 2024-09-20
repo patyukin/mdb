@@ -98,7 +98,6 @@ func TestLoadConfig_NoEnvVar(t *testing.T) {
 }
 
 func TestLoadConfig_FileNotFound(t *testing.T) {
-	// Set the environment variable to a non-existent file
 	nonExistentFile := filepath.Join(os.TempDir(), "non_existent_config.yaml")
 
 	if err := os.Setenv("YAML_CONFIG_FILE_PATH", nonExistentFile); err != nil {

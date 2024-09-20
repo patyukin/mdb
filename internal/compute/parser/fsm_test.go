@@ -4,7 +4,6 @@ import (
 	"testing"
 )
 
-// Тестовая функция для stateCommandToken
 func TestStateCommandToken(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -118,10 +117,8 @@ func TestStateCommandToken(t *testing.T) {
 			f := NewFSM(tt.input)
 			f.position = tt.initialPos
 
-			// Вызываем функцию stateCommandToken
 			nextState, err := f.stateCommandToken()
 
-			// Проверяем ожидаемую ошибку
 			if tt.expectedErr != "" {
 				if err == nil {
 					t.Errorf("expected error '%s', got nil", tt.expectedErr)
@@ -134,7 +131,6 @@ func TestStateCommandToken(t *testing.T) {
 				}
 			}
 
-			// Проверяем ожидаемые токены
 			if tt.expectedTok != nil {
 				if len(f.tokens) != len(tt.expectedTok) {
 					t.Errorf("expected tokens %v, got %v", tt.expectedTok, f.tokens)
@@ -147,22 +143,17 @@ func TestStateCommandToken(t *testing.T) {
 				}
 			}
 
-			// Проверяем конечную позицию
 			if f.position != tt.finalPos {
 				t.Errorf("expected final position %d, got %d", tt.finalPos, f.position)
 			}
 
-			// Проверяем следующий состояние
-			if tt.expectedErr != "" {
-				if nextState != nil {
-					t.Errorf("expected next state to be nil on error, got %v", nextState)
-				}
+			if tt.expectedErr != "" && nextState != nil {
+				t.Errorf("expected next state to be nil on error, got nextState != nil")
 			}
 		})
 	}
 }
 
-// Тестовая функция для stateArgumentsToken
 func TestStateArgumentsToken(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -256,19 +247,16 @@ func TestStateArgumentsToken(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Создаём новый FSM
 			f := &FSM{
 				input:    tt.input,
 				position: tt.initialPos,
 				tokens:   []string{"CMD"},
 			}
 
-			// Вызываем функцию stateArgumentsToken
 			nextState, err := f.stateArgumentsToken()
 
 			f.tokens = f.tokens[1:]
 
-			// Проверяем ожидаемую ошибку
 			if tt.expectedErr != "" {
 				if err == nil {
 					t.Errorf("expected error '%s', got nil", tt.expectedErr)
@@ -281,7 +269,6 @@ func TestStateArgumentsToken(t *testing.T) {
 				}
 			}
 
-			// Проверяем ожидаемые токены
 			if tt.expectedTok != nil {
 				if len(f.tokens) != len(tt.expectedTok) {
 					t.Errorf("expected tokens %v, got %v", tt.expectedTok, f.tokens)
@@ -294,15 +281,12 @@ func TestStateArgumentsToken(t *testing.T) {
 				}
 			}
 
-			// Проверяем конечную позицию
 			if f.position != tt.finalPos {
 				t.Errorf("expected final position %d, got %d", tt.finalPos, f.position)
 			}
 
-			// Проверяем следующий состояние
 			if tt.expectedErr == "" && nextState != nil {
-				// Если ожидается ошибка, nextState должно быть nil
-				t.Errorf("expected next state to be nil on error, got %v", nextState)
+				t.Errorf("expected next state to be nil on error, got nextState != nil")
 			}
 		})
 	}

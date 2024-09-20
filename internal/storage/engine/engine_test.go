@@ -62,7 +62,6 @@ func TestEngine_Del(t *testing.T) {
 
 	e.Set(key, value)
 
-	// Удаление существующего ключа
 	err := e.Del(key)
 	if err != nil {
 		t.Fatalf("expected no error when deleting existing key, got %v", err)
@@ -77,7 +76,6 @@ func TestEngine_Del(t *testing.T) {
 		t.Fatalf("expected ErrNotFound after deletion, got %v", err)
 	}
 
-	// Попытка удалить несуществующий ключ
 	err = e.Del("nonExistentKey")
 	if err == nil {
 		t.Fatalf("expected error when deleting non-existent key, got nil")
@@ -97,7 +95,6 @@ func TestEngine_GetByPattern(t *testing.T) {
 		e.Set(key, value)
 	}
 
-	// Паттерн, соответствующий всем ключам, начинающимся с "b"
 	pattern := "b*"
 	expected := map[string]string{
 		"banana":    value,
@@ -147,14 +144,12 @@ func TestEngine_DelByPattern(t *testing.T) {
 		e.Set(key, value)
 	}
 
-	// Паттерн, соответствующий всем ключам, начинающимся с "a"
 	pattern := "a*"
 	err := e.DelByPattern(pattern)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Проверяем, что ключи, соответствующие паттерну, удалены
 	for _, key := range keys {
 		if key[0] == 'a' {
 			_, err := e.Get(key)
@@ -165,7 +160,6 @@ func TestEngine_DelByPattern(t *testing.T) {
 				t.Fatalf("expected ErrNotFound for key '%s', got %v", key, err)
 			}
 		} else {
-			// Остальные ключи должны существовать
 			_, err := e.Get(key)
 			if err != nil {
 				t.Fatalf("expected key '%s' to exist, got error %v", key, err)
@@ -200,29 +194,24 @@ func TestEngine_ConcurrentAccess(t *testing.T) {
 
 	done := make(chan bool)
 
-	// Запускаем несколько горутин для чтения и записи
 	for i := 0; i < 100; i++ {
 		go func(i int) {
 			if i%2 == 0 {
-				// Чтение
 				_, err := e.Get(key)
 				if err != nil && !errors.Is(err, ErrNotFound) {
 					t.Errorf("unexpected error during Get: %v", err)
 				}
 			} else {
-				// Запись
 				e.Set(key, fmt.Sprintf("value%d", i))
 			}
 			done <- true
 		}(i)
 	}
 
-	// Ожидаем завершения всех горутин
 	for i := 0; i < 100; i++ {
 		<-done
 	}
 
-	// Проверяем окончательное значение
 	finalValue, err := e.Get(key)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
