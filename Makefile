@@ -18,7 +18,7 @@ cov-all:
 cov:
 	@PACKAGES=$$(go list ./... | grep -v "/mocks$$"| grep -v "/cmd$$"); \
 	go test -coverpkg=$$(echo $$PACKAGES | tr ' ' ',') -coverprofile=coverage/coverage.out $$PACKAGES; \
-    go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 
 gocov:
 	@PACKAGES=$$(go list ./... | grep -v '/mocks' | grep -v '/cmd'); \

@@ -37,6 +37,11 @@ func New(e Engine, l *zap.Logger) *Storage {
 }
 
 func (s *Storage) Execute(command *parser.Command) (string, error) {
+	err := command.Validate()
+	if err != nil {
+		return "", fmt.Errorf("failed command.Validate, %w", err)
+	}
+
 	s.logger.Info("Executing command", zap.String("action", command.Action), zap.Strings("args", command.Args))
 	switch command.Action {
 	case GET:
@@ -53,14 +58,14 @@ func (s *Storage) Execute(command *parser.Command) (string, error) {
 			}
 
 			return result.String(), nil
-		} else {
-			value, err := s.engine.Get(key)
-			if err != nil {
-				return "", fmt.Errorf("failed s.engine.Get, err: %w", err)
-			}
-
-			return value, nil
 		}
+
+		value, err := s.engine.Get(key)
+		if err != nil {
+			return "", fmt.Errorf("failed s.engine.Get, err: %w", err)
+		}
+
+		return value, nil
 	case SET:
 		s.engine.Set(command.Args[0], command.Args[1])
 		return "", nil
@@ -73,10 +78,10 @@ func (s *Storage) Execute(command *parser.Command) (string, error) {
 			}
 
 			return "", nil
-		} else {
-			s.engine.Delete(key)
-			return "", nil
 		}
+
+		s.engine.Delete(key)
+		return "", nil
 	default:
 		return "", fmt.Errorf("unknown command: %s", command.Action)
 	}

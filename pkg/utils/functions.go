@@ -23,10 +23,6 @@ func isDigit(r rune) bool {
 	return unicode.IsDigit(r)
 }
 
-func isPunctuation(r rune) bool {
-	return unicode.IsPunct(r)
-}
-
 // ConvertPatternToRegex конвертирует шаблон с * в регулярное выражение.
 func ConvertPatternToRegex(pattern string) string {
 	pattern = regexp.QuoteMeta(pattern)
@@ -48,4 +44,23 @@ func MatchPattern(s, pattern string) (bool, error) {
 
 func ContainsWildcard(s string) bool {
 	return strings.Contains(s, "*")
+}
+
+func IsUppercase(ch rune) bool {
+	return 'A' <= ch && ch <= 'Z'
+}
+
+// isPunctuation проверяет, является ли символ допустимым знаком пунктуации
+func isPunctuation(ch rune) bool {
+	switch ch {
+	case '*', '/', '_', '-', '.', '+', '=', '?', '&', '%', '$', '#', '@', '!':
+		return true
+	default:
+		return false
+	}
+}
+
+// IsValidArgumentChar проверяет, допустим ли символ в аргументе
+func IsValidArgumentChar(ch rune) bool {
+	return isLetter(ch) || isDigit(ch) || isPunctuation(ch) || ch == '/'
 }

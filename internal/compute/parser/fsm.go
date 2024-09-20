@@ -3,140 +3,146 @@ package parser
 import (
 	"fmt"
 	"github.com/patyukin/mdb/pkg/utils"
-	"unicode/utf8"
+	"strings"
+	"unicode"
 )
 
-const eof = -1
-
-type fsm struct {
-	input string
-	pos   int
-	start int
-	width int
-	items []string
-	err   error
+// FSM отвечает за токенизацию входной строки
+type FSM struct {
+	input        string
+	position     int
+	currentToken strings.Builder
+	tokens       []string
 }
 
-type StateFn func() StateFn
+// StateFunc определяет тип функции состояния
+type StateFunc func() (StateFunc, error)
 
-func newFSM(input string) *fsm {
-	return &fsm{
-		input: input,
+// NewFSM создает новый экземпляр FSM
+func NewFSM(input string) *FSM {
+	return &FSM{
+		input:    input,
+		position: 0,
+		tokens:   []string{},
 	}
 }
 
-func (f *fsm) Parse() ([]string, error) {
-	for state := f.stateStart; state != nil; {
-		state = state()
+// Tokenize обрабатывает входную строку и генерирует токены, используя функции состояний
+func (fsm *FSM) Tokenize() ([]string, error) {
+	var err error
+	for state := fsm.stateStart; state != nil; {
+		state, err = state()
+		if err != nil {
+			return nil, fmt.Errorf("failed fsm.stateStart: %w", err)
+		}
 	}
 
-	if f.err != nil {
-		return nil, f.err
-	}
-
-	if len(f.items) == 0 {
+	if len(fsm.tokens) == 0 {
 		return nil, fmt.Errorf("empty command")
 	}
 
-	return f.items, nil
+	return fsm.tokens, nil
 }
 
-func (f *fsm) stateStart() StateFn {
-	f.skipWhitespace()
-	if f.pos >= len(f.input) {
-		f.err = fmt.Errorf("empty command")
-		return nil
+// stateStart обрабатывает начальное состояние FSM
+func (fsm *FSM) stateStart() (StateFunc, error) {
+	fsm.skipWhitespace()
+	if fsm.position >= len(fsm.input) {
+		return nil, fmt.Errorf("empty input")
 	}
 
-	return f.stateAction
+	return fsm.stateCommandToken, nil
 }
 
-func (f *fsm) stateAction() StateFn {
-	action := f.consumeToken()
-	if f.err != nil {
-		return nil
+// stateCommandToken обрабатывает состояние разбора первого токена (команды)
+func (fsm *FSM) stateCommandToken() (StateFunc, error) {
+	fsm.skipWhitespace()
+	runes := []rune(fsm.input)
+
+	if fsm.position >= len(runes) {
+		return nil, fmt.Errorf("empty input")
 	}
 
-	f.items = append(f.items, action)
-	return f.stateArgs
-}
+	for fsm.position < len(runes) {
+		ch := runes[fsm.position]
 
-func (f *fsm) stateArgs() StateFn {
-	for {
-		f.skipWhitespace()
-		if f.pos >= len(f.input) {
-			return nil
+		if unicode.IsSpace(ch) {
+			tokenStr := fsm.currentToken.String()
+
+			if tokenStr == "" {
+				return nil, fmt.Errorf("empty command")
+			}
+
+			fsm.tokens = append(fsm.tokens, tokenStr)
+			fsm.currentToken.Reset()
+
+			return fsm.stateArgumentsToken, nil
 		}
 
-		arg := f.consumeToken()
-		if arg == "" && f.err == nil {
-			f.err = fmt.Errorf("empty argument")
-			return nil
+		if utils.IsUppercase(ch) {
+			fsm.currentToken.WriteRune(ch)
+			fsm.position++
+			continue
 		}
 
-		f.items = append(f.items, arg)
+		return nil, fmt.Errorf("invalid character in command: '%c'", ch)
 	}
+
+	if fsm.currentToken.Len() > 0 {
+		tokenStr := fsm.currentToken.String()
+
+		fsm.tokens = append(fsm.tokens, tokenStr)
+		fsm.currentToken.Reset()
+	}
+
+	return nil, fmt.Errorf("empty arguments")
 }
 
-func (f *fsm) consumeToken() string {
-	f.skipWhitespace()
-	f.start = f.pos
-	for {
-		r := f.next()
-		if r == eof {
-			break
+// stateArgumentsToken обрабатывает состояние разбора последующих токенов (аргументов)
+func (fsm *FSM) stateArgumentsToken() (StateFunc, error) {
+	fsm.skipWhitespace()
+	runes := []rune(fsm.input)
+
+	if fsm.position >= len(runes) {
+		return nil, fmt.Errorf("empty arguments")
+	}
+
+	for fsm.position < len(runes) {
+		ch := runes[fsm.position]
+
+		if len(fsm.tokens) == 3 && fsm.currentToken.Len() > 0 {
+			return nil, fmt.Errorf("too many arguments")
 		}
 
-		if utils.IsWhitespace(r) {
-			f.backup()
-			break
+		if unicode.IsSpace(ch) {
+			if fsm.currentToken.Len() > 0 {
+				fsm.tokens = append(fsm.tokens, fsm.currentToken.String())
+				fsm.currentToken.Reset()
+			}
+
+			fsm.position++
+			continue
 		}
 
-		if !utils.IsValidArgChar(r) {
-			f.err = fmt.Errorf("invalid character: %q", r)
-			return ""
-		}
-	}
-
-	return f.input[f.start:f.pos]
-}
-func (f *fsm) next() rune {
-	if f.pos >= len(f.input) {
-		f.width = 0
-		return eof
-	}
-
-	r, w := utf8.DecodeRuneInString(f.input[f.pos:])
-	if r == utf8.RuneError && w == 1 {
-		f.err = fmt.Errorf("invalid UTF-8 encoding at position %d", f.pos)
-		return eof
-	}
-
-	f.width = w
-	f.pos += f.width
-
-	return r
-}
-
-func (f *fsm) backup() {
-	f.pos -= f.width
-}
-
-func (f *fsm) skipWhitespace() {
-	for {
-		r := f.peek()
-		if !utils.IsWhitespace(r) {
-			break
+		if utils.IsValidArgumentChar(ch) {
+			fsm.currentToken.WriteRune(ch)
+			fsm.position++
+			continue
 		}
 
-		f.next()
+		return nil, fmt.Errorf("invalid character in token: %c", ch)
 	}
+
+	if fsm.currentToken.Len() > 0 {
+		fsm.tokens = append(fsm.tokens, fsm.currentToken.String())
+		fsm.currentToken.Reset()
+	}
+
+	return nil, nil
 }
 
-func (f *fsm) peek() rune {
-	if f.pos >= len(f.input) {
-		return eof
+func (fsm *FSM) skipWhitespace() {
+	for fsm.position < len(fsm.input) && unicode.IsSpace(rune(fsm.input[fsm.position])) {
+		fsm.position++
 	}
-
-	return rune(f.input[f.pos])
 }

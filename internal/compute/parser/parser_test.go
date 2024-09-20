@@ -136,13 +136,10 @@ func TestParser_FsmParse(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:  "Command with extra spaces",
-			input: "  SETwe   key1   value1  ",
-			expected: &Command{
-				Action: "SET",
-				Args:   []string{"key1", "value1"},
-			},
-			wantErr: true,
+			name:     "Command with extra spaces",
+			input:    "  SETwe   key1   value1  ",
+			expected: &Command{},
+			wantErr:  true,
 		},
 		{
 			name:  "Command with extra spaces",

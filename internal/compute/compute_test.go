@@ -24,7 +24,7 @@ func TestCompute_ProcessRequest(t *testing.T) {
 			name:           "Parsing error",
 			input:          "SELECT users",
 			expectedResult: "Executed: SELECT * FROM users",
-			expectedError:  "failed c.parser.Parse: unknown command: SELECT",
+			expectedError:  "failed c.parser.Parse: failed cmd.Validate: unknown command: SELECT",
 		},
 		{
 			name:           "Parsing error",
@@ -37,7 +37,7 @@ func TestCompute_ProcessRequest(t *testing.T) {
 			name:           "Parsing error",
 			input:          "INVALID COMMAND",
 			expectedResult: "",
-			expectedError:  "failed c.parser.Parse: unknown command: INVALID",
+			expectedError:  "failed c.parser.Parse: failed cmd.Validate: unknown command: INVALID",
 		},
 		{
 			name:           "Execution error",
@@ -50,13 +50,13 @@ func TestCompute_ProcessRequest(t *testing.T) {
 			name:           "Execution error",
 			input:          "SELECT * error_table",
 			expectedResult: "",
-			expectedError:  "failed c.parser.Parse: unknown command: SELECT",
+			expectedError:  "failed c.parser.Parse: failed cmd.Validate: unknown command: SELECT",
 		},
 		{
 			name:           "Empty input",
 			input:          "   ",
 			expectedResult: "",
-			expectedError:  "failed c.parser.Parse: failed f.Parse: empty command",
+			expectedError:  "failed c.parser.Parse: failed f.Parse: failed fsm.stateStart: empty input",
 		},
 		{
 			name:           "Successful command",
