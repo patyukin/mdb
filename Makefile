@@ -8,7 +8,7 @@ gen:
 	go generate ./...
 
 test:
-	go test -v ./...
+	go test -v ./... -count=1
 
 cov-all:
 	go test ./... -coverprofile=coverage/coverage-all.out

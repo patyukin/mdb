@@ -9,27 +9,22 @@ type Engine struct {
 	mock.Mock
 }
 
-// DelByPattern provides a mock function with given fields: pattern
-func (_m *Engine) DelByPattern(pattern string) error {
-	ret := _m.Called(pattern)
+// Delete provides a mock function with given fields: key
+func (_m *Engine) Delete(key string) error {
+	ret := _m.Called(key)
 
 	if len(ret) == 0 {
-		panic("no return value specified for DelByPattern")
+		panic("no return value specified for Delete")
 	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(string) error); ok {
-		r0 = rf(pattern)
+		r0 = rf(key)
 	} else {
 		r0 = ret.Error(0)
 	}
 
 	return r0
-}
-
-// Delete provides a mock function with given fields: key
-func (_m *Engine) Delete(key string) {
-	_m.Called(key)
 }
 
 // Get provides a mock function with given fields: key
@@ -53,36 +48,6 @@ func (_m *Engine) Get(key string) (string, error) {
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(key)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetByPattern provides a mock function with given fields: pattern
-func (_m *Engine) GetByPattern(pattern string) (map[string]string, error) {
-	ret := _m.Called(pattern)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetByPattern")
-	}
-
-	var r0 map[string]string
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (map[string]string, error)); ok {
-		return rf(pattern)
-	}
-	if rf, ok := ret.Get(0).(func(string) map[string]string); ok {
-		r0 = rf(pattern)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[string]string)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(pattern)
 	} else {
 		r1 = ret.Error(1)
 	}

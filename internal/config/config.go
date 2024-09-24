@@ -15,10 +15,12 @@ type Config struct {
 	}
 }
 
-func LoadConfig() (*Config, error) {
-	yamlConfigFilePath := os.Getenv("YAML_CONFIG_FILE_PATH")
+func LoadConfig(yamlConfigFilePath string) (*Config, error) {
 	if yamlConfigFilePath == "" {
-		return nil, fmt.Errorf("yaml config file path is not set")
+		yamlConfigFilePath = os.Getenv("YAML_CONFIG_FILE_PATH")
+		if yamlConfigFilePath == "" {
+			return nil, fmt.Errorf("yaml config file path is not set")
+		}
 	}
 
 	f, err := os.Open(yamlConfigFilePath)

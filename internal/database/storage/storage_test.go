@@ -2,17 +2,17 @@ package storage
 
 import (
 	"errors"
-	"fmt"
+	"github.com/patyukin/mdb/internal/database/compute/parser"
+	"github.com/patyukin/mdb/internal/database/storage/mocks"
 	"log"
 	"testing"
 
-	"github.com/patyukin/mdb/internal/compute/parser"
-	"github.com/patyukin/mdb/internal/mocks"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 func TestStorage_Execute(t *testing.T) {
+	t.Parallel()
 	mockEngine := new(mocks.Engine)
 	logger := zap.NewNop()
 	storage := New(mockEngine, logger)
@@ -55,12 +55,9 @@ func TestStorage_Execute(t *testing.T) {
 				Args:   []string{"*"},
 			},
 			setupMocks: func() {
-				mockEngine.On("GetByPattern", "*").Return(map[string]string{
-					"key1": "value1",
-					"key2": "value2",
-				}, nil).Once()
+				mockEngine.On("Get", "*").Return("value1", nil).Once()
 			},
-			expected:    "key1: value1\nkey2: value2\n",
+			expected:    "value1",
 			expectedErr: nil,
 		},
 		{
@@ -70,10 +67,10 @@ func TestStorage_Execute(t *testing.T) {
 				Args:   []string{"nonexistent*"},
 			},
 			setupMocks: func() {
-				mockEngine.On("GetByPattern", "nonexistent*").Return(nil, errors.New("key not found")).Once()
+				mockEngine.On("Get", "nonexistent*").Return("", errors.New("key not found")).Once()
 			},
 			expected:    "",
-			expectedErr: errors.New("failed s.engine.GetByPattern, err: key not found"),
+			expectedErr: errors.New("failed s.engine.Get, err: key not found"),
 		},
 		{
 			name: "DEL command without wildcard",
@@ -82,7 +79,7 @@ func TestStorage_Execute(t *testing.T) {
 				Args:   []string{"key1"},
 			},
 			setupMocks: func() {
-				mockEngine.On("Delete", "key1").Once()
+				mockEngine.On("Delete", "key1").Return(nil).Once()
 			},
 			expected:    "",
 			expectedErr: nil,
@@ -94,7 +91,7 @@ func TestStorage_Execute(t *testing.T) {
 				Args:   []string{"*"},
 			},
 			setupMocks: func() {
-				mockEngine.On("DelByPattern", "*").Return(nil).Once()
+				mockEngine.On("Delete", "*").Return(nil).Once()
 			},
 			expected:    "",
 			expectedErr: nil,
@@ -106,10 +103,10 @@ func TestStorage_Execute(t *testing.T) {
 				Args:   []string{"*"},
 			},
 			setupMocks: func() {
-				mockEngine.On("DelByPattern", "*").Return(errors.New("del by pattern failed")).Once()
+				mockEngine.On("Delete", "*").Return(errors.New("del by pattern failed")).Once()
 			},
 			expected:    "",
-			expectedErr: errors.New("failed s.engine.DelByPattern, err: del by pattern failed"),
+			expectedErr: errors.New("failed s.engine.Delete, err: del by pattern failed"),
 		},
 		{
 			name: "Unknown command",
@@ -333,142 +330,9 @@ func TestStorage_Execute_MultipleCommands(t *testing.T) {
 		Args:   []string{"key1"},
 	}
 
-	mockEngine.On("Delete", "key1").Once()
+	mockEngine.On("Delete", "key1").Return(nil).Once()
 
 	result, err = storage.Execute(delCommand)
 	assert.NoError(t, err)
 	assert.Equal(t, "", result)
-}
-
-func TestStorage_Execute_GetAllKeys(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	getAllCommand := &parser.Command{
-		Action: "GET",
-		Args:   []string{"*"},
-	}
-
-	mockEngine.On("GetByPattern", "*").Return(map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-	}, nil).Once()
-
-	expectedOutput := "key1: value1\nkey2: value2\n"
-
-	result, err := storage.Execute(getAllCommand)
-	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprint(expectedOutput), fmt.Sprint(result))
-}
-
-func TestStorage_Execute_DeleteAllKeys(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	deleteAllCommand := &parser.Command{
-		Action: "DEL",
-		Args:   []string{"*"},
-	}
-
-	mockEngine.On("DelByPattern", "*").Return(nil).Once()
-
-	result, err := storage.Execute(deleteAllCommand)
-	assert.NoError(t, err)
-	assert.Equal(t, "", result)
-}
-
-func TestStorage_Execute_DeleteAllKeys_WithError(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	deleteAllCommand := &parser.Command{
-		Action: "DEL",
-		Args:   []string{"*"},
-	}
-
-	mockEngine.On("DelByPattern", "*").Return(errors.New("delete all failed")).Once()
-
-	result, err := storage.Execute(deleteAllCommand)
-	assert.Error(t, err)
-	assert.Equal(t, "", result)
-	assert.EqualError(t, err, "failed s.engine.DelByPattern, err: delete all failed")
-}
-
-func TestStorage_Execute_GetByPattern_WithComplexPattern(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	getPatternCommand := &parser.Command{
-		Action: "GET",
-		Args:   []string{"key*"},
-	}
-
-	mockEngine.On("GetByPattern", "key*").Return(map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"keyA": "valueA",
-	}, nil).Once()
-
-	expectedOutput := "key1: value1\nkey2: value2\nkeyA: valueA\n"
-
-	result, err := storage.Execute(getPatternCommand)
-	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprint(expectedOutput), fmt.Sprint(result))
-}
-
-func TestStorage_Execute_GetByPattern_NoMatches(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	getNoMatchCommand := &parser.Command{
-		Action: "GET",
-		Args:   []string{"noMatch*"},
-	}
-
-	mockEngine.On("GetByPattern", "noMatch*").Return(nil, errors.New("key not found")).Once()
-
-	result, err := storage.Execute(getNoMatchCommand)
-	assert.Error(t, err)
-	assert.Equal(t, "", result)
-	assert.EqualError(t, err, "failed s.engine.GetByPattern, err: key not found")
-}
-
-func TestStorage_Execute_DeleteByPattern_WithMultipleMatches(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	deletePatternCommand := &parser.Command{
-		Action: "DEL",
-		Args:   []string{"key*"},
-	}
-
-	mockEngine.On("DelByPattern", "key*").Return(nil).Once()
-
-	result, err := storage.Execute(deletePatternCommand)
-	assert.NoError(t, err)
-	assert.Equal(t, "", result)
-}
-
-func TestStorage_Execute_DeleteByPattern_NoMatches(t *testing.T) {
-	mockEngine := new(mocks.Engine)
-	logger := zap.NewNop()
-	storage := New(mockEngine, logger)
-
-	deleteNoMatchCommand := &parser.Command{
-		Action: "DEL",
-		Args:   []string{"noMatch*"},
-	}
-
-	mockEngine.On("DelByPattern", "noMatch*").Return(errors.New("delete by pattern failed")).Once()
-
-	result, err := storage.Execute(deleteNoMatchCommand)
-	assert.Error(t, err)
-	assert.Equal(t, "", result)
-	assert.EqualError(t, err, "failed s.engine.DelByPattern, err: delete by pattern failed")
 }

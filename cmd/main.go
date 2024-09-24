@@ -1,17 +1,27 @@
 package main
 
 import (
-	"github.com/patyukin/mdb/internal/compute"
-	"github.com/patyukin/mdb/internal/compute/parser"
+	"bufio"
+	"flag"
+	"fmt"
 	"github.com/patyukin/mdb/internal/config"
-	"github.com/patyukin/mdb/internal/storage"
-	"github.com/patyukin/mdb/internal/storage/engine"
+	"github.com/patyukin/mdb/internal/database"
+	"github.com/patyukin/mdb/internal/database/compute"
+	"github.com/patyukin/mdb/internal/database/compute/parser"
+	"github.com/patyukin/mdb/internal/database/storage"
+	"github.com/patyukin/mdb/internal/database/storage/engine"
 	"github.com/patyukin/mdb/pkg/logger"
+	"go.uber.org/zap"
 	"log"
+	"os"
+	"strings"
 )
 
 func main() {
-	cfg, err := config.LoadConfig()
+	configPath := flag.String("config_path", "", "Config path")
+	flag.Parse()
+
+	cfg, err := config.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
@@ -24,7 +34,37 @@ func main() {
 	engn := engine.New()
 	strg := storage.New(engn, l)
 	prsr := parser.New()
-	cmpt := compute.New(prsr, strg, l)
+	cmpt := compute.New(prsr, l)
 
-	cmpt.Start()
+	dbase := database.New(cmpt, strg, l)
+
+	scanner := bufio.NewScanner(os.Stdin)
+	l.Info("Database started. Waiting for commands...")
+
+	for {
+		fmt.Print("> ")
+		if !scanner.Scan() {
+			l.Error("Error reading from input")
+			break
+		}
+
+		input := scanner.Text()
+		input = strings.TrimSpace(input)
+		if input == "" {
+			l.Info("Empty command received")
+			continue
+		}
+
+		var result string
+		result, err = dbase.HandleQuery(input)
+		if err != nil {
+			l.Error("failed c.ProcessRequest", zap.Error(err))
+		} else if result != "" {
+			l.Info("Request processed successfully", zap.String("result", result))
+		}
+	}
+
+	if err = scanner.Err(); err != nil {
+		l.Error("Error reading from input", zap.Error(err))
+	}
 }

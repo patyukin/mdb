@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	parser "github.com/patyukin/mdb/internal/compute/parser"
+	parser "github.com/patyukin/mdb/internal/database/compute/parser"
 	mock "github.com/stretchr/testify/mock"
 )
 

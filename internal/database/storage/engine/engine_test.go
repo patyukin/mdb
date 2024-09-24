@@ -43,7 +43,9 @@ func TestEngine_Delete(t *testing.T) {
 	value := "testValue"
 
 	e.Set(key, value)
-	e.Delete(key)
+	if err := e.Delete(key); err != nil {
+		t.Fatalf("expected error after deleting key, got nil")
+	}
 
 	_, err := e.Get(key)
 	if err == nil {
@@ -62,7 +64,7 @@ func TestEngine_Del(t *testing.T) {
 
 	e.Set(key, value)
 
-	err := e.Del(key)
+	err := e.Delete(key)
 	if err != nil {
 		t.Fatalf("expected no error when deleting existing key, got %v", err)
 	}
@@ -76,112 +78,13 @@ func TestEngine_Del(t *testing.T) {
 		t.Fatalf("expected ErrNotFound after deletion, got %v", err)
 	}
 
-	err = e.Del("nonExistentKey")
+	err = e.Delete("nonExistentKey")
 	if err == nil {
 		t.Fatalf("expected error when deleting non-existent key, got nil")
 	}
 
 	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound when deleting non-existent key, got %v", err)
-	}
-}
-
-func TestEngine_GetByPattern(t *testing.T) {
-	e := New()
-	keys := []string{"apple", "apricot", "banana", "berry", "blueberry"}
-	value := "fruit"
-
-	for _, key := range keys {
-		e.Set(key, value)
-	}
-
-	pattern := "b*"
-	expected := map[string]string{
-		"banana":    value,
-		"berry":     value,
-		"blueberry": value,
-	}
-
-	result, err := e.GetByPattern(pattern)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	if len(result) != len(expected) {
-		t.Fatalf("expected %d results, got %d", len(expected), len(result))
-	}
-
-	for k, v := range expected {
-		if result[k] != v {
-			t.Fatalf("expected key '%s' to have value '%s', got '%s'", k, v, result[k])
-		}
-	}
-}
-
-func TestEngine_GetByPattern_NotFound(t *testing.T) {
-	e := New()
-	e.Set("apple", "fruit")
-	e.Set("banana", "fruit")
-
-	pattern := "c*"
-
-	_, err := e.GetByPattern(pattern)
-	if err == nil {
-		t.Fatalf("expected error when no keys match pattern, got nil")
-	}
-
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("expected ErrNotFound, got %v", err)
-	}
-}
-
-func TestEngine_DelByPattern(t *testing.T) {
-	e := New()
-	keys := []string{"apple", "apricot", "banana", "berry", "blueberry"}
-	value := "fruit"
-
-	for _, key := range keys {
-		e.Set(key, value)
-	}
-
-	pattern := "a*"
-	err := e.DelByPattern(pattern)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	for _, key := range keys {
-		if key[0] == 'a' {
-			_, err := e.Get(key)
-			if err == nil {
-				t.Fatalf("expected key '%s' to be deleted, but it still exists", key)
-			}
-			if !errors.Is(err, ErrNotFound) {
-				t.Fatalf("expected ErrNotFound for key '%s', got %v", key, err)
-			}
-		} else {
-			_, err := e.Get(key)
-			if err != nil {
-				t.Fatalf("expected key '%s' to exist, got error %v", key, err)
-			}
-		}
-	}
-}
-
-func TestEngine_DelByPattern_NotFound(t *testing.T) {
-	e := New()
-	e.Set("apple", "fruit")
-	e.Set("banana", "fruit")
-
-	pattern := "c*"
-
-	err := e.DelByPattern(pattern)
-	if err == nil {
-		t.Fatalf("expected error when no keys match pattern, got nil")
-	}
-
-	if !errors.Is(err, ErrNotFound) {
-		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
 

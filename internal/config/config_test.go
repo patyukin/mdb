@@ -67,7 +67,7 @@ logger:
 		}
 	}()
 
-	config, err := LoadConfig()
+	config, err := LoadConfig("")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -86,7 +86,7 @@ func TestLoadConfig_NoEnvVar(t *testing.T) {
 		return
 	}
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected error when YAML_CONFIG_FILE_PATH is not set, got nil")
 	}
@@ -109,7 +109,7 @@ func TestLoadConfig_FileNotFound(t *testing.T) {
 		}
 	}()
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected error when config file does not exist, got nil")
 	}
@@ -140,7 +140,7 @@ logger:
 		}
 	}()
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected error due to invalid YAML, got nil")
 	}
@@ -170,7 +170,7 @@ logger:
 		}
 	}()
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected validation error due to missing fields, got nil")
 	}
@@ -201,7 +201,7 @@ logger:
 		}
 	}()
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected validation error due to invalid enum values, got nil")
 	}
@@ -232,7 +232,7 @@ logger:
 		}
 	}()
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected validation error due to empty logger.level, got nil")
 	}
@@ -263,7 +263,7 @@ logger:
 		}
 	}()
 
-	_, err := LoadConfig()
+	_, err := LoadConfig("")
 	if err == nil {
 		t.Fatalf("Expected validation error due to empty logger.mode, got nil")
 	}
