@@ -1,0 +1,4 @@
+/bin
+config.yaml
+config-local.yaml
+/coverage
